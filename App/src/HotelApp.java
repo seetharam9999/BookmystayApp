@@ -1,5 +1,4 @@
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 // Abstract Room Class
 abstract class Room {
@@ -42,10 +41,7 @@ class SingleRoom extends Room {
 
     @Override
     public void displayRoomDetails() {
-        System.out.println("Type: " + getType());
-        System.out.println("Beds: " + getBeds());
-        System.out.println("Size: " + getSize() + " sq.ft");
-        System.out.println("Price: ₹" + getPrice());
+        System.out.println(getType() + " | Beds: " + getBeds() + " | Price: ₹" + getPrice());
     }
 }
 
@@ -56,10 +52,7 @@ class DoubleRoom extends Room {
 
     @Override
     public void displayRoomDetails() {
-        System.out.println("Type: " + getType());
-        System.out.println("Beds: " + getBeds());
-        System.out.println("Size: " + getSize() + " sq.ft");
-        System.out.println("Price: ₹" + getPrice());
+        System.out.println(getType() + " | Beds: " + getBeds() + " | Price: ₹" + getPrice());
     }
 }
 
@@ -70,52 +63,72 @@ class SuiteRoom extends Room {
 
     @Override
     public void displayRoomDetails() {
-        System.out.println("Type: " + getType());
-        System.out.println("Beds: " + getBeds());
-        System.out.println("Size: " + getSize() + " sq.ft");
-        System.out.println("Price: ₹" + getPrice());
+        System.out.println(getType() + " | Beds: " + getBeds() + " | Price: ₹" + getPrice());
     }
 }
 
-// Centralized Inventory
+// Inventory (unchanged, no mutation in this stage)
 class RoomInventory {
-    private Map<String, Integer> availability;
+    private Map<String, Integer> availability = new HashMap<>();
 
-    public RoomInventory() {
-        availability = new HashMap<>();
+    public void addRoomType(String type, int count) {
+        availability.put(type, count);
     }
 
-    public void addRoomType(String roomType, int count) {
-        availability.put(roomType, count);
-    }
-
-    public int getAvailability(String roomType) {
-        return availability.getOrDefault(roomType, 0);
-    }
-
-    // Read-only exposure (no direct modification)
-    public Map<String, Integer> getAllAvailability() {
-        return availability;
+    public int getAvailability(String type) {
+        return availability.getOrDefault(type, 0);
     }
 }
 
-// Search Service (Read-Only Logic)
-class RoomSearchService {
+// Reservation (Booking Request)
+class Reservation {
+    private String guestName;
+    private String roomType;
 
-    public void searchAvailableRooms(Room[] rooms, RoomInventory inventory) {
-        System.out.println("\n=== Available Rooms ===\n");
+    public Reservation(String guestName, String roomType) {
+        this.guestName = guestName;
+        this.roomType = roomType;
+    }
 
-        for (Room room : rooms) {
+    public String getGuestName() {
+        return guestName;
+    }
 
-            int available = inventory.getAvailability(room.getType());
+    public String getRoomType() {
+        return roomType;
+    }
 
-            // Validation: show only available rooms
-            if (available > 0) {
-                room.displayRoomDetails();
-                System.out.println("Available: " + available);
-                System.out.println();
-            }
+    public void display() {
+        System.out.println("Guest: " + guestName + " requested " + roomType);
+    }
+}
+
+// Booking Request Queue (FIFO)
+class BookingRequestQueue {
+    private Queue<Reservation> queue;
+
+    public BookingRequestQueue() {
+        queue = new LinkedList<>();
+    }
+
+    // Add request (enqueue)
+    public void addRequest(Reservation reservation) {
+        queue.offer(reservation);
+        System.out.println("Request added to queue:");
+        reservation.display();
+    }
+
+    // View all queued requests (no removal)
+    public void viewQueue() {
+        System.out.println("\n=== Booking Request Queue ===");
+        for (Reservation r : queue) {
+            r.display();
         }
+    }
+
+    // Peek next request (FIFO, no removal)
+    public Reservation peekNext() {
+        return queue.peek();
     }
 }
 
@@ -123,21 +136,33 @@ class RoomSearchService {
 public class HotelApp {
     public static void main(String[] args) {
 
-        // Create room objects
+        // Room setup
         Room single = new SingleRoom();
         Room doubleRoom = new DoubleRoom();
         Room suite = new SuiteRoom();
 
-        Room[] rooms = { single, doubleRoom, suite };
-
-        // Initialize inventory
+        // Inventory setup (no changes later)
         RoomInventory inventory = new RoomInventory();
         inventory.addRoomType(single.getType(), 5);
-        inventory.addRoomType(doubleRoom.getType(), 0); // unavailable
+        inventory.addRoomType(doubleRoom.getType(), 3);
         inventory.addRoomType(suite.getType(), 2);
 
-        // Guest performs search
-        RoomSearchService searchService = new RoomSearchService();
-        searchService.searchAvailableRooms(rooms, inventory);
+        // Booking Queue
+        BookingRequestQueue requestQueue = new BookingRequestQueue();
+
+        // Guests submit booking requests
+        requestQueue.addRequest(new Reservation("Alice", "Single Room"));
+        requestQueue.addRequest(new Reservation("Bob", "Suite Room"));
+        requestQueue.addRequest(new Reservation("Charlie", "Double Room"));
+
+        // View queue (arrival order preserved)
+        requestQueue.viewQueue();
+
+        // Peek next request (FIFO behavior)
+        System.out.println("\nNext request to process:");
+        Reservation next = requestQueue.peekNext();
+        if (next != null) {
+            next.display();
+        }
     }
 }
